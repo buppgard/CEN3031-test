@@ -15,7 +15,7 @@ function App() {
       const response = await axios.get('http://localhost:5001/names');
       setNames(response.data);
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching names:', err);
     }
   };
 
@@ -26,7 +26,16 @@ function App() {
       setName('');
       fetchNames();
     } catch (err) {
-      console.error(err);
+      console.error('Error adding name:', err);
+    }
+  };
+
+  const handleDeleteOldest = async () => {
+    try {
+      await axios.delete('http://localhost:5001/delete-oldest');
+      fetchNames();
+    } catch (err) {
+      console.error('Error deleting oldest item:', err);
     }
   };
 
@@ -44,6 +53,7 @@ function App() {
         </label>
         <button type="submit">Submit</button>
       </form>
+      <button onClick={handleDeleteOldest}>Delete Oldest Item</button>
       <table>
         <thead>
           <tr>

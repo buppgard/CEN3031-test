@@ -39,3 +39,19 @@ app.get('/names', async (req, res) => {
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
+
+app.delete('/delete-oldest', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'DELETE FROM names WHERE id = (SELECT id FROM names ORDER BY id ASC LIMIT 1) RETURNING *'
+    );
+    if (result.rows.length === 0) {
+      res.status(404).send('No items to delete');
+    } else {
+      res.status(200).send('Oldest item deleted');
+    }
+  } catch (err) {
+    console.error('Error executing query', err.stack);
+    res.status(500).send(err.toString());
+  }
+});
