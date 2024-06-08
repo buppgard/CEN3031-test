@@ -2,16 +2,17 @@ const express = require('express');
 const { Pool } = require('pg');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const axios = require('axios');
 
 const app = express();
-const port = 5001;
+const port = process.env.PORT || 5000;
 
 const pool = new Pool({
-  user: 'postgres',
-  host: 'localhost',
-  database: 'test_db',
-  password: 'password',
-  port: 5432,
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
+  password: process.env.DB_PASSWORD,
+  port: process.env.DB_PORT,
 });
 
 app.use(cors());
@@ -23,6 +24,7 @@ app.post('/add-name', async (req, res) => {
     await pool.query('INSERT INTO names (name) VALUES ($1)', [name]);
     res.status(200).send('Name added');
   } catch (err) {
+    console.error('Error executing query', err.stack);
     res.status(500).send(err.toString());
   }
 });
@@ -32,12 +34,9 @@ app.get('/names', async (req, res) => {
     const result = await pool.query('SELECT * FROM names');
     res.status(200).json(result.rows);
   } catch (err) {
+    console.error('Error executing query', err.stack);
     res.status(500).send(err.toString());
   }
-});
-
-app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
 });
 
 app.delete('/delete-oldest', async (req, res) => {
@@ -54,4 +53,37 @@ app.delete('/delete-oldest', async (req, res) => {
     console.error('Error executing query', err.stack);
     res.status(500).send(err.toString());
   }
+});
+
+// ChatGPT Endpoint
+app.post('/chat', async (req, res) => {
+  const { message } = req.body;
+  try {
+    const response = await axios.post(
+      'https://api.openai.com/v1/chat/completions',
+      {
+        model: 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: message }],
+        max_tokens: 150,
+        n: 1,
+        stop: null,
+        temperature: 0.7,
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, // Replace with your OpenAI API key
+        },
+      }
+    );
+    console.log('ChatGPT API response:', response.data);
+    res.status(200).json(response.data);
+  } catch (error) {
+    console.error('Error fetching from ChatGPT API', error);
+    res.status(500).send('Error fetching from ChatGPT API');
+  }
+});
+
+app.listen(port, () => {
+  console.log(`Server is running on http://localhost:${port}`);
 });
